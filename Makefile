@@ -6,7 +6,7 @@ lint:
 	pylint suffix_tree
 
 test:
-	pytest --with-doctest -v
+	pytest suffix_tree --doctest-modules -v
 
 dist: test
 	python3 setup.py sdist bdist_wheel
