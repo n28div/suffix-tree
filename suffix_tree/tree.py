@@ -234,6 +234,27 @@ class Tree (lca_mixin.Tree):
             child.maximal_repeats (a)
         return a
 
+    def supermaximal_repeats (self):
+        """Get a list of the supermaximal repeats in the tree.
+
+        >>> tree = Tree ({ 'A' : 'xabxac', 'B' : 'awyawxawxz' })
+        >>> for C, path in sorted (tree.supermaximal_repeats ()):
+        ...    print (C, path)
+        1 a w
+        1 a w x
+        2 x a
+
+        See [Gusfield1997]_ §7.12.2, 146ff.
+
+        """
+        self.root.compute_C ()
+        self.root.compute_left_diverse ()
+
+        a = []
+        for child in self.root.children.values ():
+            child.supermaximal_repeats (a)
+        return a
+
     def to_dot (self):
         """ Output the tree in GraphViz .dot format. """
         dot = []

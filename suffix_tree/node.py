@@ -3,7 +3,8 @@
 
 """A node class for a Generalized Suffix Tree"""
 
-from .util import Path
+from itertools import chain
+from .util import Path, UniqueStartChar
 from . import lca_mixin
 
 class Node (lca_mixin.Node):
@@ -36,6 +37,7 @@ class Node (lca_mixin.Node):
         """
 
         self.is_left_diverse = None
+        self.left_characters = None
         r"""A node :math:`v` of :math:`\mathcal{T}` is called *left diverse* if at least
         two leaves in :math:`v`'s subtree have different left characters.  By
         definition a leaf cannot be left diverse.  [Gusfield1997]_ §7.12.1,
@@ -148,6 +150,10 @@ class Node (lca_mixin.Node):
         """ Maximal repeats recursive function. """
         raise NotImplementedError ()
 
+    def supermaximal_repeats (self, a):
+        """ Supermaximal repeats recursive function. """
+        raise NotImplementedError ()
+
     def to_dot (self, a):
         """ Return node translated to Graphviz .dot format."""
         if self.suffix_link is not None:
@@ -189,9 +195,17 @@ class Leaf (lca_mixin.Leaf, Node):
 
     def compute_left_diverse (self):
         """ See description in Node """
-        return [self.path.S[self.path.start - 1]] if self.path.start else None
+        if self.path.start:
+            self.left_characters = [self.path.S[self.path.start - 1]]
+        else:
+            self.left_characters = [UniqueStartChar(str(self.path))]
+
+        return self.left_characters
 
     def maximal_repeats (self, a):
+        pass
+
+    def supermaximal_repeats (self, a):
         pass
 
     def to_dot (self, a):
@@ -263,23 +277,34 @@ class Internal (lca_mixin.Internal, Node):
 
     def compute_left_diverse (self):
         """ See description in Node """
-        left_characters = set ()
+        self.left_characters = list ()
         self.is_left_diverse = False
         for node in self.children.values ():
             lc = node.compute_left_diverse ()
-            if lc is None:
+            if len(lc) == 0:
                 self.is_left_diverse = True
             else:
-                left_characters.update (lc)
-        if len (left_characters) > 1:
+                self.left_characters.extend (lc)
+        if len (set (self.left_characters)) > 1:
             self.is_left_diverse = True
-        return None if self.is_left_diverse else left_characters
+
+        return self.left_characters
 
     def maximal_repeats (self, a):
         if self.is_left_diverse:
             a.append ((self.C, self.path))
         for child in self.children.values ():
             child.maximal_repeats (a)
+
+    def supermaximal_repeats (self, a):
+        children_leaves = all(map(lambda child: child.is_leaf, self.children.values()))
+        left_characters = list(chain(*[c.left_characters for c in self.children.values()]))
+        distinct_left_characters = len(set(left_characters)) == len(left_characters)
+
+        if self.is_left_diverse and children_leaves and distinct_left_characters:           
+            a.append ((self.C, self.path))
+        for child in self.children.values ():
+            child.supermaximal_repeats (a)
 
     def to_dot (self, a):
         a.append ('"%s" [color=red];\n' % str (self))

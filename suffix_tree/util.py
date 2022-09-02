@@ -24,6 +24,19 @@ class UniqueEndChar (object):
     def __lt__ (self, other):
         return False
 
+@functools.total_ordering
+class UniqueStartChar (object):
+    """ A singleton object to signal start of sequence. """
+
+    def __init__ (self, id_):
+        self.id = id_
+
+    def __str__ (self):
+        return '$'
+
+    def __gt__ (self, other):
+        return False
+
 min_debug_depth = -1
 """ How deep we were in the stack when emitting the first debug message. """
 
