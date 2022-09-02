@@ -3,10 +3,10 @@
 all: lint test
 
 lint:
-	pylint3 suffix_tree
+	pylint suffix_tree
 
 test:
-	nosetests --with-doctest -v
+	pytest --with-doctest -v
 
 dist: test
 	python3 setup.py sdist bdist_wheel
