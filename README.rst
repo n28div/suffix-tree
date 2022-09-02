@@ -11,7 +11,7 @@ retrieval.
 
 .. code-block:: python
 
-   from suffix_tree import Tree
+   >>> from suffix_tree import Tree
 
    >>> tree = Tree ({ 'A' : 'xabxac' })
    >>> tree.find ('abx')

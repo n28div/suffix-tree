@@ -6,7 +6,7 @@ lint:
 	pylint suffix_tree
 
 test:
-	pytest suffix_tree --doctest-modules -v
+	pytest suffix_tree --doctest-modules -v --doctest-glob="*"
 
 dist: test
 	python3 setup.py sdist bdist_wheel
