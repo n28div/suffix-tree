@@ -240,7 +240,6 @@ class Tree (lca_mixin.Tree):
         >>> tree = Tree ({ 'A' : 'xabxac', 'B' : 'awyawxawxz' })
         >>> for C, path in sorted (tree.supermaximal_repeats ()):
         ...    print (C, path)
-        1 a w
         1 a w x
         2 x a
 
@@ -254,6 +253,38 @@ class Tree (lca_mixin.Tree):
         for child in self.root.children.values ():
             child.supermaximal_repeats (a)
         return a
+
+    def nearsupermaximal_repeats (self, score_decimals = 5):
+        """Get a list of the nearsupermaximal repeats in the tree 
+        along with the respective score.
+
+        >>> tree = Tree ({ 'A' : 'xabxac', 'B' : 'awyawxawxz' })
+        >>> for C, path, score in tree.nearsupermaximal_repeats(score_decimals=2):
+        ...    print(C, path, score)
+        2 x a 1.0
+        1 a w 0.33
+        1 a w x 1.0
+
+        See [Gusfield1997]_ §7.12.2, 146ff.
+
+        """
+        self.root.compute_C ()
+        self.root.compute_left_diverse ()
+
+        a = []
+        for child in self.root.children.values ():
+            child.nearsupermaximal_repeats (a)
+
+        # compute witness score for each supermaximal
+        scores = dict()
+        for pattern, witnessers in itertools.groupby(a, lambda x: str(x[1])):
+            occurences = [path for _, path in self.find_all(pattern.replace(" ", ""))]
+            score = len(list(witnessers)) / len(occurences)
+            scores[pattern] = round(score, score_decimals)
+
+        # append score
+        nearsupermaximals = set((*x, scores[str(x[1])]) for x in a)
+        return list(nearsupermaximals)
 
     def to_dot (self):
         """ Output the tree in GraphViz .dot format. """

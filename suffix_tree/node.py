@@ -154,6 +154,10 @@ class Node (lca_mixin.Node):
         """ Supermaximal repeats recursive function. """
         raise NotImplementedError ()
 
+    def nearsupermaximal_repeats (self, a):
+        """ Supermaximal repeats recursive function. """
+        raise NotImplementedError ()
+
     def to_dot (self, a):
         """ Return node translated to Graphviz .dot format."""
         if self.suffix_link is not None:
@@ -206,6 +210,9 @@ class Leaf (lca_mixin.Leaf, Node):
         pass
 
     def supermaximal_repeats (self, a):
+        pass
+
+    def nearsupermaximal_repeats(self, a):
         pass
 
     def to_dot (self, a):
@@ -297,7 +304,7 @@ class Internal (lca_mixin.Internal, Node):
             child.maximal_repeats (a)
 
     def supermaximal_repeats (self, a):
-        children_leaves = all(map(lambda child: child.is_leaf, self.children.values()))
+        children_leaves = all(map(lambda child: child.is_leaf(), self.children.values()))
         left_characters = list(chain(*[c.left_characters for c in self.children.values()]))
         distinct_left_characters = len(set(left_characters)) == len(left_characters)
 
@@ -306,6 +313,20 @@ class Internal (lca_mixin.Internal, Node):
         for child in self.children.values ():
             child.supermaximal_repeats (a)
 
+    def nearsupermaximal_repeats (self, a):
+        leaves = [child for child in self.children.values() if child.is_leaf()]
+        
+        for leaf in leaves:
+            other_left_characters = set(chain(*[
+                c.left_characters for c in self.children.values() if c != leaf
+            ]))
+
+            if len(other_left_characters.intersection(leaf.left_characters)) == 0:
+                a.append((self.C, self.path))
+        
+        for child in self.children.values():
+            child.nearsupermaximal_repeats(a)
+        
     def to_dot (self, a):
         a.append ('"%s" [color=red];\n' % str (self))
         super ().to_dot (a)
