@@ -275,16 +275,12 @@ class Tree (lca_mixin.Tree):
         for child in self.root.children.values ():
             child.nearsupermaximal_repeats (a)
 
-        # compute witness score for each supermaximal
-        scores = dict()
-        for pattern, witnessers in itertools.groupby(a, lambda x: str(x[1])):
-            occurences = [path for _, path in self.find_all(pattern.replace(" ", ""))]
-            score = len(list(witnessers)) / len(occurences)
-            scores[pattern] = round(score, score_decimals)
+        for _, path in a:
+            seq = path.S[path.start:path.end]
+            seq_paths = [path for  _, path in self.find_all(seq)]
+            pass
 
-        # append score
-        nearsupermaximals = set((*x, scores[str(x[1])]) for x in a)
-        return list(nearsupermaximals)
+        return set(a)
 
     def to_dot (self):
         """ Output the tree in GraphViz .dot format. """

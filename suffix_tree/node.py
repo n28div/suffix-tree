@@ -37,7 +37,7 @@ class Node (lca_mixin.Node):
         """
 
         self.is_left_diverse = None
-        self.left_characters = None
+        self.left_character = None
         r"""A node :math:`v` of :math:`\mathcal{T}` is called *left diverse* if at least
         two leaves in :math:`v`'s subtree have different left characters.  By
         definition a leaf cannot be left diverse.  [Gusfield1997]_ §7.12.1,
@@ -176,7 +176,13 @@ class Leaf (lca_mixin.Leaf, Node):
     def __init__ (self, parent, str_id, path, **kw):
         super ().__init__ (parent, path, **kw) # Node
         self.str_id = str_id
-
+        
+        # record left character for left diverse computation
+        if self.path.start:
+            self.left_character = self.path.S[self.path.start - 1] 
+        else:
+            self.left_character = UniqueStartChar(str(self.path))
+        
     def __str__ (self):
         # start + 1 makes it Gusfield-compatible for easier comparing with examples in the book
         return ("%s%s" % (self.name or str (self.path), super ().__str__ ())
@@ -199,12 +205,7 @@ class Leaf (lca_mixin.Leaf, Node):
 
     def compute_left_diverse (self):
         """ See description in Node """
-        if self.path.start:
-            self.left_characters = [self.path.S[self.path.start - 1]]
-        else:
-            self.left_characters = [UniqueStartChar(str(self.path))]
-
-        return self.left_characters
+        return self.left_character
 
     def maximal_repeats (self, a):
         pass
@@ -230,6 +231,7 @@ class Internal (lca_mixin.Internal, Node):
         super ().__init__ (parent, path, **kw)
         self.children = {}
         """ A dictionary of item => node """
+        self.below_left_characters = set()
 
     def __str__ (self):
         return "%s%s" % (self.name or (str (self.path)), super ().__str__ ())
@@ -284,19 +286,21 @@ class Internal (lca_mixin.Internal, Node):
 
     def compute_left_diverse (self):
         """ See description in Node """
-        self.left_characters = list ()
         self.is_left_diverse = False
+        child_left_diverse = False
+        children_left_characters = set()
+
+        # compute left characters for leafs below
         for node in self.children.values ():
-            lc = node.compute_left_diverse ()
-            if len(lc) == 0:
-                self.is_left_diverse = True
-            else:
-                self.left_characters.extend (lc)
-        if len (set (self.left_characters)) > 1:
-            self.is_left_diverse = True
+            child_left_diverse = child_left_diverse or node.is_left_diverse
+            node.compute_left_diverse()
+            children_left_characters.add(node.left_character)
+            if node.is_internal():
+                self.below_left_characters.update(node.below_left_characters)
 
-        return self.left_characters
+        self.is_left_diverse = child_left_diverse or len(self.below_left_characters) != 1
 
+        
     def maximal_repeats (self, a):
         if self.is_left_diverse:
             a.append ((self.C, self.path))
@@ -305,7 +309,7 @@ class Internal (lca_mixin.Internal, Node):
 
     def supermaximal_repeats (self, a):
         children_leaves = all(map(lambda child: child.is_leaf(), self.children.values()))
-        left_characters = list(chain(*[c.left_characters for c in self.children.values()]))
+        left_characters = [c.left_character for c in self.children.values()]
         distinct_left_characters = len(set(left_characters)) == len(left_characters)
 
         if self.is_left_diverse and children_leaves and distinct_left_characters:           
@@ -314,15 +318,16 @@ class Internal (lca_mixin.Internal, Node):
             child.supermaximal_repeats (a)
 
     def nearsupermaximal_repeats (self, a):
-        leaves = [child for child in self.children.values() if child.is_leaf()]
+        if self.is_left_diverse:
+            leaves = [child for child in self.children.values() if child.is_leaf()]
         
-        for leaf in leaves:
-            other_left_characters = set(chain(*[
-                c.left_characters for c in self.children.values() if c != leaf
-            ]))
+            for leaf in leaves:
+                other_left_characters = set.union(*[
+                    set([c.left_character]) if c.is_leaf() else c.below_left_characters 
+                    for c in self.children.values() if c != leaf])
 
-            if len(other_left_characters.intersection(leaf.left_characters)) == 0:
-                a.append((self.C, self.path))
+                if leaf.left_character not in other_left_characters:
+                    a.append((self.C, self.path))
         
         for child in self.children.values():
             child.nearsupermaximal_repeats(a)
