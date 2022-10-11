@@ -151,6 +151,12 @@ class Path (object):
         iterable = tuple (iterable)
         return Path (iterable, 0, len (iterable))
 
+    @property
+    def seq(self):
+        s = self.start
+        e = self.end - 1 if isinstance(self.S[self.end - 1], UniqueEndChar) else self.end
+        return self.S[s:e]
+
     def __str__ (self):
         return ' '.join (map (str, self.S[self.start:self.end]))
 
